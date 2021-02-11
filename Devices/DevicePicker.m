@@ -186,7 +186,7 @@
 
     _tableViewController.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:pickerCancel style:UIBarButtonItemStylePlain target:self action:@selector(dismissPicker:)];
     
-    UIWindow *mainWindow = [[UIApplication sharedApplication].windows firstObject];
+    UIWindow *mainWindow = [[UIApplication sharedApplication] keyWindow];
     [mainWindow.rootViewController presentViewController:_navigationController animated:self.shouldAnimatePicker completion:nil];
 }
 
