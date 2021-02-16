@@ -352,12 +352,6 @@
         device = (ConnectableDevice *) [_generatedDeviceList objectAtIndex:indexPath.row];
     }
     
-    if (self.currentDevice)
-    {
-        if ([self.currentDevice.serviceDescription.address isEqualToString:device.serviceDescription.address])
-            return;
-    }
-    
     if (_delegate && [_delegate respondsToSelector:@selector(devicePicker:didSelectDevice:)])
     {
         dispatch_async(dispatch_get_main_queue(), ^{
