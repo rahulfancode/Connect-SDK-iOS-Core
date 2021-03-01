@@ -62,18 +62,18 @@ typedef void (^ MuteSuccessBlock)(BOOL mute);
 - (CapabilityPriorityLevel)volumeControlPriority;
 
 #pragma mark Volume
-- (void) volumeUpWithSuccess:(SuccessBlock)success failure:(FailureBlock)failure;
-- (void) volumeDownWithSuccess:(SuccessBlock)success failure:(FailureBlock)failure;
-
-- (void) getVolumeWithSuccess:(VolumeSuccessBlock)success failure:(FailureBlock)failure;
 - (void) setVolume:(float)volume success:(SuccessBlock)success failure:(FailureBlock)failure;
 
-- (ServiceSubscription *)subscribeVolumeWithSuccess:(VolumeSuccessBlock)success failure:(FailureBlock)failure;
-
 #pragma mark Mute
-- (void) getMuteWithSuccess:(MuteSuccessBlock)success failure:(FailureBlock)failure;
 - (void) setMute:(BOOL)mute success:(SuccessBlock)success failure:(FailureBlock)failure;
 
+@optional
+- (void) volumeUpWithSuccess:(SuccessBlock)success failure:(FailureBlock)failure;
+- (void) volumeDownWithSuccess:(SuccessBlock)success failure:(FailureBlock)failure;
+- (void) getVolumeWithSuccess:(VolumeSuccessBlock)success failure:(FailureBlock)failure;
+- (void) getMuteWithSuccess:(MuteSuccessBlock)success failure:(FailureBlock)failure;
+
+- (ServiceSubscription *)subscribeVolumeWithSuccess:(VolumeSuccessBlock)success failure:(FailureBlock)failure;
 - (ServiceSubscription *)subscribeMuteWithSuccess:(MuteSuccessBlock)success failure:(FailureBlock)failure;
 
 @end
