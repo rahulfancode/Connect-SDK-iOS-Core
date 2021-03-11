@@ -52,6 +52,7 @@
  */
 @property (nonatomic, weak) ConnectableDevice *currentDevice;
 
+
 /*!
  * This method will animate the picker onto the screen. On iPad, the picker will appear as a popover view and will animate from the sender object, if you provide one. On iPhone, the picker will appear as a full-screen table view that will animate up from the bottom of the screen. This picker will animate in real time with additions, losses, and updates of ConnectableDevices.
  *

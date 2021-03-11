@@ -21,6 +21,9 @@
 #import "DevicePicker.h"
 #import "DiscoveryProvider.h"
 #import "DiscoveryManager.h"
+#import "SlideUpPresentationManager.h"
+#import "DeviceTableViewCell.h"
+#import "DeviceHelper.h"
 
 @implementation DevicePicker
 {
@@ -28,7 +31,6 @@
     NSArray *_actionSheetDeviceList;
     NSMutableDictionary *_devices;
     
-    UINavigationController *_navigationController;
     UITableViewController *_tableViewController;
     
     UIActionSheet *_actionSheet;
@@ -38,6 +40,8 @@
     NSDictionary *_popoverParams;
 
     dispatch_queue_t _sortQueue;
+    
+    SlideUpPresentationManager * slideInTransitioningDelegate;
 
     BOOL _showServiceLabel;
 }
@@ -50,7 +54,7 @@
     {
         _sortQueue = dispatch_queue_create("Connect SDK Device Picker Sort", DISPATCH_QUEUE_SERIAL);
         _devices = [[NSMutableDictionary alloc] init];
-
+        slideInTransitioningDelegate = [SlideUpPresentationManager new];
         self.shouldAnimatePicker = YES;
     }
 
@@ -64,6 +68,38 @@
     [_tableViewController.tableView reloadData];
 }
 
+- (UIView *)tableHeaderView {
+    UIStackView * headerView = [UIStackView new];
+    [headerView setFrame:CGRectMake(0, 0, UIScreen.mainScreen.bounds.size.width, 52)];
+    [headerView setLayoutMarginsRelativeArrangement:true];
+    if (@available(iOS 11.0, *)) {
+        [headerView setDirectionalLayoutMargins:NSDirectionalEdgeInsetsMake(0, 16, 0, 16)];
+    } else {
+        // Fallback on earlier versions
+    }
+    
+    [headerView setAlignment:UIStackViewAlignmentCenter];
+    [headerView setAxis:UILayoutConstraintAxisHorizontal];
+    [headerView setDistribution: UIStackViewDistributionEqualSpacing];
+    [headerView.heightAnchor constraintEqualToConstant:52].active = true;
+    
+    UILabel * label = [UILabel new];
+    [label setFont:[UIFont fontWithName:@"NotoSansDisplay-SemiBold" size:20]];
+    [label setTranslatesAutoresizingMaskIntoConstraints: false];
+    [label setText: @"Connect to a device"];
+    
+    UIButton * closeButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    [closeButton setImage:[UIImage imageNamed:@"slice_cast_on"] forState:UIControlStateNormal];
+    [closeButton setTranslatesAutoresizingMaskIntoConstraints: false];
+    [closeButton.widthAnchor constraintEqualToConstant:100].active = true;
+    [closeButton.heightAnchor constraintEqualToConstant:36].active = true;
+    [closeButton sizeToFit];
+    
+    [headerView addArrangedSubview:label];
+    [headerView addArrangedSubview:closeButton];
+    return headerView;
+}
+
 #pragma mark - Picker display methods
 
 - (void) showPicker:(id)sender
@@ -75,16 +111,14 @@
     NSString *pickerTitle = [[NSBundle mainBundle] localizedStringForKey:@"Connect_SDK_Search_Title" value:@"Pick a device" table:@"ConnectSDK"];
 
     _tableViewController = [[UITableViewController alloc] initWithStyle:UITableViewStylePlain];
+    _tableViewController.tableView.tableHeaderView = [self tableHeaderView];
+    _tableViewController.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableViewController.tableView.rowHeight = 52;
     _tableViewController.title = pickerTitle;
     _tableViewController.tableView.delegate = self;
     _tableViewController.tableView.dataSource = self;
     
-    _navigationController = [[UINavigationController alloc] initWithRootViewController:_tableViewController];
-    
-    UIActivityIndicatorView *indicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
-    [indicator startAnimating];
-    
-    _tableViewController.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:indicator];
+    [_tableViewController.tableView registerClass:[DeviceTableViewCell class] forCellReuseIdentifier:cellIdentifier];
     
     if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
         [self showPopover:sender];
@@ -94,7 +128,7 @@
 
 - (void) showPopover:(id)source
 {
-    _popover = [[UIPopoverController alloc] initWithContentViewController:_navigationController];
+    _popover = [[UIPopoverController alloc] initWithContentViewController:_tableViewController];
     _popover.delegate = self;
     
     if ([source isKindOfClass:[UIBarButtonItem class]])
@@ -187,7 +221,9 @@
     _tableViewController.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:pickerCancel style:UIBarButtonItemStylePlain target:self action:@selector(dismissPicker:)];
     
     UIWindow *mainWindow = [[UIApplication sharedApplication] keyWindow];
-    [mainWindow.rootViewController presentViewController:_navigationController animated:self.shouldAnimatePicker completion:nil];
+    _tableViewController.transitioningDelegate = slideInTransitioningDelegate;
+    _tableViewController.modalPresentationStyle = UIModalPresentationCustom;
+    [mainWindow.rootViewController presentViewController:_tableViewController animated:self.shouldAnimatePicker completion:nil];
 }
 
 - (void) dismissPicker:(id)sender
@@ -200,7 +236,7 @@
         if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
             [_popover dismissPopoverAnimated:_shouldAnimatePicker];
         else
-            [_navigationController dismissViewControllerAnimated:_shouldAnimatePicker completion:nil];
+            [_tableViewController dismissViewControllerAnimated:_shouldAnimatePicker completion:nil];
     }
 
     [self cleanupViews];
@@ -232,7 +268,6 @@
     _actionSheetTargetView = nil;
     _actionSheet = nil;
     _actionSheetDeviceList = nil;
-    _navigationController = nil;
     _tableViewController = nil;
     _popoverParams = nil;
     _popover = nil;
@@ -250,27 +285,13 @@
         @synchronized (_generatedDeviceList)
         {
             _generatedDeviceList = [devices sortedArrayUsingComparator:^NSComparisonResult(ConnectableDevice *device1, ConnectableDevice *device2) {
-                NSString *device1Name = [[self nameForDevice:device1] lowercaseString];
-                NSString *device2Name = [[self nameForDevice:device2] lowercaseString];
+                NSString *device1Name = [[DeviceHelper nameForDevice:device1] lowercaseString];
+                NSString *device2Name = [[DeviceHelper nameForDevice:device2] lowercaseString];
 
                 return [device1Name compare:device2Name];
             }];
         }
     });
-}
-
-- (NSString *) nameForDevice:(ConnectableDevice *)device
-{
-    NSString *name;
-    
-    if (device.serviceDescription.friendlyName && device.serviceDescription.friendlyName.length > 0)
-        name = device.serviceDescription.friendlyName;
-    else if (device.serviceDescription.address && device.serviceDescription.address.length > 0)
-        name = device.serviceDescription.address;
-    else
-        name = [[NSBundle mainBundle] localizedStringForKey:@"Connect_SDK_Unnamed_Device" value:@"Unnamed device" table:@"ConnectSDK"];
-    
-    return name;
 }
 
 - (void) handleRotation
@@ -387,10 +408,7 @@ static NSString *cellIdentifier = @"connectPickerCell";
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
 
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
-
-    if (cell == nil)
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellIdentifier];
+    DeviceTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
 
     ConnectableDevice *device;
 
@@ -403,24 +421,7 @@ static NSString *cellIdentifier = @"connectPickerCell";
     if (!device)
         return cell;
 
-    NSString *deviceName = [self nameForDevice:device];
-    [cell.textLabel setText:deviceName];
-
-    #ifdef DEBUG
-        [cell.detailTextLabel setText:[device connectedServiceNames]];
-    #endif
-
-        if (_showServiceLabel)
-            [cell.detailTextLabel setText:[device connectedServiceNames]];
-
-        if (self.currentDevice)
-        {
-            if ([self.currentDevice.serviceDescription.address isEqualToString:device.serviceDescription.address])
-                [cell setAccessoryType:UITableViewCellAccessoryCheckmark];
-            else
-                [cell setAccessoryType:UITableViewCellAccessoryNone];
-        }
-
+    [cell configureCell: device currentDevice:self.currentDevice];
     return cell;
 }
 
