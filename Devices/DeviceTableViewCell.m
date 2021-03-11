@@ -9,6 +9,7 @@
 #import "DeviceHelper.h"
 
 @implementation DeviceTableViewCell {
+    UIImageView * imageView;
     UILabel * label;
     UIButton * button;
     UIStackView * containerView;
@@ -49,9 +50,22 @@
 }
 
 - (void)setupLabel {
+    UIStackView * stackView = [UIStackView new];
+    [stackView setAxis:UILayoutConstraintAxisHorizontal];
+    [stackView setSpacing:24];
+    
+    imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 24, 24)];
+    [imageView setTranslatesAutoresizingMaskIntoConstraints:false];
+    [imageView.widthAnchor constraintEqualToConstant:24].active = true;
+    [imageView.heightAnchor constraintEqualToConstant:24].active = true;
+    
+    [stackView addArrangedSubview:imageView];
+    
     label = [[UILabel alloc] init];
     [label setFont: [UIFont fontWithName:@"NotoSansDisplay-Regular" size:16]];
-    [containerView addArrangedSubview:label];
+    [stackView addArrangedSubview:label];
+    
+    [containerView addArrangedSubview:stackView];
 }
 
 - (void)setupButton {
@@ -62,9 +76,11 @@
     [button setBackgroundColor:[UIColor colorWithRed:255.0/255.0 green:80.0/255.0 blue:0/255 alpha:1.0]];
     [button.widthAnchor constraintEqualToConstant:122].active = true;
     [button.heightAnchor constraintEqualToConstant:32].active = true;
+    
     [button.layer setCornerRadius:4];
-    [button.layer setShadowColor:[UIColor colorWithRed:0 green:0 blue:0 alpha:0.12].CGColor];
+    [button.layer setShadowColor:[UIColor colorWithRed:0 green:0 blue:0 alpha:1].CGColor];
     [button.layer setShadowRadius:4];
+    [button.layer setShadowOpacity:0.12];
     [button setEnabled:false];
     [button.layer setShadowOffset:CGSizeMake(0, 2)];
     
@@ -85,6 +101,13 @@
     NSString *deviceName = [DeviceHelper nameForDevice:device];
     [label setText:deviceName];
     [button setHidden:![currentDevice.serviceDescription.address isEqualToString:device.serviceDescription.address]];
+    
+    NSBundle * bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"react-native-connect-sdk" ofType:@"bundle"]];
+    if ([currentDevice.serviceDescription.address isEqualToString:device.serviceDescription.address] == true) {
+        [imageView setImage:[UIImage imageNamed:@"slice-cast-on.png" inBundle:bundle compatibleWithTraitCollection:nil]];
+    } else {
+        [imageView setImage:[UIImage imageNamed:@"slice-cast.png" inBundle:bundle compatibleWithTraitCollection:nil]];
+    }
 }
 
 /*

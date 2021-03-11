@@ -89,9 +89,13 @@
     [label setText: @"Connect to a device"];
     
     UIButton * closeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [closeButton setImage:[UIImage imageNamed:@"slice_cast_on"] forState:UIControlStateNormal];
+    
+    NSBundle * bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"react-native-connect-sdk" ofType:@"bundle"]];
+    [closeButton setImage:[UIImage imageNamed:@"slice-close.png" inBundle:bundle compatibleWithTraitCollection:nil] forState:UIControlStateNormal];
+    [closeButton addTarget:self action:@selector(dismissPicker:) forControlEvents:UIControlEventTouchUpInside];
+    [closeButton setTintColor:[UIColor colorWithRed:120.0/255.0 green:120.0/255.0 blue:120.0/255.0 alpha:1.0]];
     [closeButton setTranslatesAutoresizingMaskIntoConstraints: false];
-    [closeButton.widthAnchor constraintEqualToConstant:100].active = true;
+    [closeButton.widthAnchor constraintEqualToConstant:36].active = true;
     [closeButton.heightAnchor constraintEqualToConstant:36].active = true;
     [closeButton sizeToFit];
     
