@@ -38,18 +38,18 @@
     
     UIPopoverController *_popover;
     NSDictionary *_popoverParams;
-
+    
     dispatch_queue_t _sortQueue;
     
     SlideUpPresentationManager * slideInTransitioningDelegate;
-
+    
     BOOL _showServiceLabel;
 }
 
 - (instancetype) init
 {
     self = [super init];
-
+    
     if (self)
     {
         _sortQueue = dispatch_queue_create("Connect SDK Device Picker Sort", DISPATCH_QUEUE_SERIAL);
@@ -57,14 +57,18 @@
         slideInTransitioningDelegate = [SlideUpPresentationManager new];
         self.shouldAnimatePicker = YES;
     }
-
+    
     return self;
 }
 
 - (void)setCurrentDevice:(ConnectableDevice *)currentDevice
 {
     _currentDevice = currentDevice;
+    
+    [_tableViewController.tableView reloadData];
+}
 
+- (void) reloadData {
     [_tableViewController.tableView reloadData];
 }
 
@@ -109,11 +113,11 @@
 - (void) showPicker:(id)sender
 {
     [self sortDevices];
-
+    
     _showServiceLabel = [DiscoveryManager sharedManager].capabilityFilters.count == 0;
-
+    
     NSString *pickerTitle = [[NSBundle mainBundle] localizedStringForKey:@"Connect_SDK_Search_Title" value:@"Pick a device" table:@"ConnectSDK"];
-
+    
     _tableViewController = [[UITableViewController alloc] initWithStyle:UITableViewStylePlain];
     _tableViewController.tableView.tableHeaderView = [self tableHeaderView];
     _tableViewController.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
@@ -122,7 +126,8 @@
     _tableViewController.tableView.delegate = self;
     _tableViewController.tableView.dataSource = self;
     
-    [_tableViewController.tableView registerClass:[DeviceTableViewCell class] forCellReuseIdentifier:cellIdentifier];
+    [_tableViewController.tableView registerClass:[DeviceTableViewCell class] forCellReuseIdentifier: NSStringFromClass([DeviceTableViewCell class])];
+    [_tableViewController.tableView registerClass:[AirPlayTableViewCell class] forCellReuseIdentifier: NSStringFromClass([AirPlayTableViewCell class])];
     
     if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
         [self showPopover:sender];
@@ -162,9 +167,9 @@
 #pragma clang diagnostic pop
             
             _popoverParams = @{
-                               @"sourceView" : sourceView,
-                               @"targetView" : targetView
-                               };
+                @"sourceView" : sourceView,
+                @"targetView" : targetView
+            };
         }
         
         [_popover presentPopoverFromRect:sourceRect inView:targetView permittedArrowDirections:permittedArrowDirections animated:self.shouldAnimatePicker];
@@ -186,14 +191,14 @@
                                       cancelButtonTitle:nil
                                  destructiveButtonTitle:nil
                                       otherButtonTitles:nil];
-
+    
     @synchronized (_generatedDeviceList)
     {
         _actionSheetDeviceList = [_generatedDeviceList copy];
     }
-
+    
     [_actionSheetDeviceList enumerateObjectsUsingBlock:^(ConnectableDevice *device, NSUInteger idx, BOOL *stop)
-    {
+     {
         [_actionSheet addButtonWithTitle:device.friendlyName];
     }];
     
@@ -221,7 +226,7 @@
 - (void) showNavigation
 {
     NSString *pickerCancel = [[NSBundle mainBundle] localizedStringForKey:@"Connect_SDK_Search_Cancel" value:@"Cancel" table:@"ConnectSDK"];
-
+    
     _tableViewController.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:pickerCancel style:UIBarButtonItemStylePlain target:self action:@selector(dismissPicker:)];
     
     UIWindow *mainWindow = [[UIApplication sharedApplication] keyWindow];
@@ -242,9 +247,9 @@
         else
             [_tableViewController dismissViewControllerAnimated:_shouldAnimatePicker completion:nil];
     }
-
+    
     [self cleanupViews];
-
+    
     if (self.delegate && [self.delegate respondsToSelector:@selector(devicePicker:didCancelWithError:)])
     {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -265,10 +270,10 @@
     
     if (_popover)
         _popover.delegate = nil;
-
+    
     if (_actionSheet)
         _actionSheet.delegate = nil;
-
+    
     _actionSheetTargetView = nil;
     _actionSheet = nil;
     _actionSheetDeviceList = nil;
@@ -283,15 +288,15 @@
 {
     dispatch_async(_sortQueue, ^{
         NSArray *devices;
-
+        
         @synchronized (_devices) { devices = [_devices allValues]; }
-
+        
         @synchronized (_generatedDeviceList)
         {
             _generatedDeviceList = [devices sortedArrayUsingComparator:^NSComparisonResult(ConnectableDevice *device1, ConnectableDevice *device2) {
                 NSString *device1Name = [[DeviceHelper nameForDevice:device1] lowercaseString];
                 NSString *device2Name = [[DeviceHelper nameForDevice:device2] lowercaseString];
-
+                
                 return [device1Name compare:device2Name];
             }];
         }
@@ -333,22 +338,22 @@
     
     ConnectableDevice *device = [_actionSheetDeviceList objectAtIndex:buttonIndex];
     BOOL deviceExists = YES;
-
+    
     @synchronized (_generatedDeviceList)
     {
         deviceExists = [_generatedDeviceList containsObject:device];
     }
-
+    
     if (!deviceExists)
     {
         DLog(@"User selected a device that no longer exists");
         return;
     }
-
+    
     if (self.delegate && [self.delegate respondsToSelector:@selector(devicePicker:didSelectDevice:)])
     {
         dispatch_async(dispatch_get_main_queue(), ^
-        {
+                       {
             [self.delegate devicePicker:self didSelectDevice:device];
         });
     }
@@ -370,20 +375,21 @@
 {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     
-    ConnectableDevice *device;
-
-    @synchronized (_generatedDeviceList)
-    {
-        device = (ConnectableDevice *) [_generatedDeviceList objectAtIndex:indexPath.row];
+    if(indexPath.row != 0) {
+        ConnectableDevice *device;
+        
+        @synchronized (_generatedDeviceList)
+        {
+            device = (ConnectableDevice *) [_generatedDeviceList objectAtIndex:indexPath.row - 1];
+        }
+        
+        if (_delegate && [_delegate respondsToSelector:@selector(devicePicker:didSelectDevice:)])
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [_delegate devicePicker:self didSelectDevice:device];
+            });
+        }
     }
-    
-    if (_delegate && [_delegate respondsToSelector:@selector(devicePicker:didSelectDevice:)])
-    {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [_delegate devicePicker:self didSelectDevice:device];
-        });
-    }
-
     [self dismissPicker:self];
 }
 
@@ -397,36 +403,39 @@
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     NSInteger numberOfRows = 0;
-
+    
     @synchronized (_generatedDeviceList)
     {
         if (_generatedDeviceList)
             numberOfRows = _generatedDeviceList.count;
     }
-
-    return numberOfRows;
+    
+    return numberOfRows + 1;
 }
-
-static NSString *cellIdentifier = @"connectPickerCell";
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-
-    DeviceTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
-
-    ConnectableDevice *device;
-
-    @synchronized (_generatedDeviceList)
-    {
-        if (_generatedDeviceList.count > 0 && indexPath.row < _generatedDeviceList.count)
-            device = (ConnectableDevice *) [_generatedDeviceList objectAtIndex:indexPath.row];
-    }
-
-    if (!device)
+    if (indexPath.row == 0) {
+        AirPlayTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:NSStringFromClass([AirPlayTableViewCell class])];
+        [cell configureCell:_airplayButton];
         return cell;
-
-    [cell configureCell: device currentDevice:self.currentDevice];
-    return cell;
+    } else {
+        DeviceTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:NSStringFromClass([DeviceTableViewCell class])];
+        
+        ConnectableDevice *device;
+        
+        @synchronized (_generatedDeviceList)
+        {
+            if (_generatedDeviceList.count > 0 && indexPath.row - 1 < _generatedDeviceList.count)
+                device = (ConnectableDevice *) [_generatedDeviceList objectAtIndex:indexPath.row - 1];
+        }
+        
+        if (!device)
+            return cell;
+        
+        [cell configureCell: device currentDevice:self.currentDevice];
+        return cell;
+    }
 }
 
 #pragma mark - UIPopoverControllerDelegate methods
@@ -450,9 +459,9 @@ static NSString *cellIdentifier = @"connectPickerCell";
     if (_devices)
     {
         @synchronized (_devices) { [_devices setObject:device forKey:device.address]; }
-
+        
         [self sortDevices];
-
+        
         dispatch_async(dispatch_get_main_queue(), ^{
             if (_tableViewController)
                 [_tableViewController.tableView reloadData];
@@ -465,9 +474,9 @@ static NSString *cellIdentifier = @"connectPickerCell";
     if (_devices)
     {
         @synchronized (_devices) { [_devices removeObjectForKey:device.address]; }
-
+        
         [self sortDevices];
-
+        
         dispatch_async(dispatch_get_main_queue(), ^{
             if (_tableViewController)
                 [_tableViewController.tableView reloadData];

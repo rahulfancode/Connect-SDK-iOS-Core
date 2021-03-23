@@ -19,6 +19,7 @@
     [super awakeFromNib];
     // Initialization code
 }
+
 -(instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
     if(self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
         [self setupContainerView];
@@ -110,25 +111,74 @@
     }
 }
 
-/*
- NSString *deviceName = [self nameForDevice:device];
- [cell.textLabel setText:deviceName];
+@end
 
- #ifdef DEBUG
-     [cell.detailTextLabel setText:[device connectedServiceNames]];
- #endif
+@implementation AirPlayTableViewCell {
+    UIImageView * imageView;
+    UILabel * label;
+    UIStackView * containerView;
+}
 
-     if (_showServiceLabel)
-         [cell.detailTextLabel setText:[device connectedServiceNames]];
+-(instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    if(self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self setupContainerView];
+        [self setupLabel];
+    }
+    return self;
+}
 
-     if (self.currentDevice)
-     {
-         if ([self.currentDevice.serviceDescription.address isEqualToString:device.serviceDescription.address])
-             [cell setAccessoryType: UITableViewCellAccessoryDetailButton];
-         else
-             [cell setAccessoryType:UITableViewCellAccessoryNone];
-     }
+- (void)setupContainerView {
+    containerView = [[UIStackView alloc] initWithFrame:self.contentView.bounds];
+    [containerView setBackgroundColor:[UIColor whiteColor]];
+    [containerView setUserInteractionEnabled:false];
+    [containerView setTranslatesAutoresizingMaskIntoConstraints:false];
+    [self.contentView addSubview:containerView];
+    
+    [containerView setLayoutMarginsRelativeArrangement:true];
+    if (@available(iOS 11.0, *)) {
+        [containerView setDirectionalLayoutMargins:NSDirectionalEdgeInsetsMake(0, 16, 0, 16)];
+    } else {
+        // Fallback on earlier versions
+    }
+    [containerView setAlignment:UIStackViewAlignmentCenter];
+    [containerView setDistribution:UIStackViewDistributionEqualSpacing];
+    [containerView setAxis:UILayoutConstraintAxisHorizontal];
+    
+    [containerView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor].active = true;
+    [containerView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor].active = true;
+    [containerView.leftAnchor constraintEqualToAnchor:self.contentView.leftAnchor].active = true;
+    [containerView.rightAnchor constraintEqualToAnchor:self.contentView.rightAnchor].active = true;
+}
 
- */
+- (void)setupLabel {
+    UIStackView * stackView = [UIStackView new];
+    [stackView setAxis:UILayoutConstraintAxisHorizontal];
+    [stackView setSpacing:24];
+    
+    imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 24, 24)];
+    [imageView setTranslatesAutoresizingMaskIntoConstraints:false];
+    [imageView.widthAnchor constraintEqualToConstant:24].active = true;
+    [imageView.heightAnchor constraintEqualToConstant:24].active = true;
+    
+    [stackView addArrangedSubview:imageView];
+    
+    label = [[UILabel alloc] init];
+    [label setFont: [UIFont fontWithName:@"NotoSansDisplay-Regular" size:16]];
+    [stackView addArrangedSubview:label];
+    
+    [containerView addArrangedSubview:stackView];
+}
+
+-(void)configureCell: (AVRoutePickerView *)airplayButton API_AVAILABLE(ios(11.0)){
+    if (![self.contentView.subviews containsObject:airplayButton]) {
+        [self.contentView addSubview:airplayButton];
+        [self.contentView sendSubviewToBack:airplayButton];
+    }
+    NSBundle * bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"react-native-connect-sdk" ofType:@"bundle"]];
+    [imageView setImage:[[UIImage imageNamed:@"airplay.png" inBundle:bundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate]];
+    [imageView setTintColor:[[airplayButton.subviews firstObject] tintColor]];
+    [label setText: @"AirPlay & Bluetooth devices"];
+}
+
 
 @end
