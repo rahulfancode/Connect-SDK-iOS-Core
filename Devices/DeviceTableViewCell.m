@@ -163,6 +163,7 @@
     [stackView addArrangedSubview:imageView];
     
     label = [[UILabel alloc] init];
+    [label setBackgroundColor:[UIColor whiteColor]];
     [label setFont: [UIFont fontWithName:@"NotoSansDisplay-Regular" size:16]];
     [stackView addArrangedSubview:label];
     
@@ -172,7 +173,7 @@
 -(void)configureCell: (AVRoutePickerView *)airplayButton API_AVAILABLE(ios(11.0)){
     if (![self.contentView.subviews containsObject:airplayButton]) {
         [self.contentView addSubview:airplayButton];
-        [self.contentView sendSubviewToBack:airplayButton];
+        [self.contentView bringSubviewToFront:containerView];
     }
     NSBundle * bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"react-native-connect-sdk" ofType:@"bundle"]];
     [imageView setImage:[[UIImage imageNamed:@"airplay.png" inBundle:bundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate]];
