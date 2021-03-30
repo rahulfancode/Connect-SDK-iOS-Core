@@ -232,7 +232,11 @@
     UIWindow *mainWindow = [[UIApplication sharedApplication] keyWindow];
     _tableViewController.transitioningDelegate = slideInTransitioningDelegate;
     _tableViewController.modalPresentationStyle = UIModalPresentationCustom;
-    [mainWindow.rootViewController presentViewController:_tableViewController animated:self.shouldAnimatePicker completion:nil];
+    if(mainWindow.rootViewController.presentedViewController) {
+        [mainWindow.rootViewController.presentedViewController presentViewController:_tableViewController animated:self.shouldAnimatePicker completion:nil];
+    } else {
+        [mainWindow.rootViewController presentViewController:_tableViewController animated:self.shouldAnimatePicker completion:nil];
+    }
 }
 
 - (void) dismissPicker:(id)sender

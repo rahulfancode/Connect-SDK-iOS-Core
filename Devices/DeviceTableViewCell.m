@@ -152,6 +152,7 @@
 
 - (void)setupLabel {
     UIStackView * stackView = [UIStackView new];
+    [stackView setBackgroundColor:[UIColor whiteColor]];
     [stackView setAxis:UILayoutConstraintAxisHorizontal];
     [stackView setSpacing:24];
     
