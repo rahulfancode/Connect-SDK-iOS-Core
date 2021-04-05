@@ -129,56 +129,7 @@
     [_tableViewController.tableView registerClass:[DeviceTableViewCell class] forCellReuseIdentifier: NSStringFromClass([DeviceTableViewCell class])];
     [_tableViewController.tableView registerClass:[AirPlayTableViewCell class] forCellReuseIdentifier: NSStringFromClass([AirPlayTableViewCell class])];
     
-    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
-        [self showPopover:sender];
-    else
-        [self showNavigation];
-}
-
-- (void) showPopover:(id)source
-{
-    _popover = [[UIPopoverController alloc] initWithContentViewController:_tableViewController];
-    _popover.delegate = self;
-    
-    if ([source isKindOfClass:[UIBarButtonItem class]])
-    {
-        [_popover presentPopoverFromBarButtonItem:source permittedArrowDirections:UIPopoverArrowDirectionAny animated:self.shouldAnimatePicker];
-    } else if ([source isKindOfClass:[UIView class]])
-    {
-        UIView *sourceView = (UIView *)source;
-        CGRect sourceRect;
-        UIView *targetView;
-        UIPopoverArrowDirection permittedArrowDirections;
-        
-        if (sourceView.superview && ![sourceView.superview isKindOfClass:[UIWindow class]])
-        {
-            sourceRect = sourceView.frame;
-            targetView = sourceView.superview;
-            permittedArrowDirections = UIPopoverArrowDirectionAny;
-        } else
-        {
-            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleRotation) name:UIDeviceOrientationDidChangeNotification object:nil];
-            
-            sourceRect = sourceView.frame;
-            targetView = sourceView;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wint-conversion"
-            permittedArrowDirections = NULL;
-#pragma clang diagnostic pop
-            
-            _popoverParams = @{
-                @"sourceView" : sourceView,
-                @"targetView" : targetView
-            };
-        }
-        
-        [_popover presentPopoverFromRect:sourceRect inView:targetView permittedArrowDirections:permittedArrowDirections animated:self.shouldAnimatePicker];
-    } else
-    {
-        DLog(@"Sender should be a subclass of either UIBarButtonItem or UIView");
-        
-        [self cleanupViews];
-    }
+    [self showNavigation];
 }
 
 - (void) showActionSheet:(id)sender
